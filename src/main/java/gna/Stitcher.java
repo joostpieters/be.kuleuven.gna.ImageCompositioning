@@ -18,6 +18,7 @@ public class Stitcher {
     private PriorityQueue<Position> priorityQueue;
     private int[][] image1;
     private int[][] image2;
+    Position[][] positions;
 
     /**
      * Return the sequence of positions on the seam. The first position in the
@@ -31,7 +32,7 @@ public class Stitcher {
     public Iterable<Position> seam(int[][] image1, int[][] image2) {
         this.image1 = image1;
         this.image2 = image2;
-        Position[][] positions = new Position[image1.length][image1[0].length];
+        positions = new Position[image1.length][image1[0].length];
         ArrayList<Position> seam = new ArrayList<Position>();
         priorityQueue = new PriorityQueue<Position>();
         for (int i = 0; i < image1.length; i++) {
@@ -47,7 +48,7 @@ public class Stitcher {
         priorityQueue.add(positions[0][0]);
         positions[0][0].setInQueue(true);
         while (!priorityQueue.isEmpty()) {
-            relax(priorityQueue.poll(), positions);
+            relax(priorityQueue.poll());
         }
         Position last = positions[positions.length - 1][positions[0].length - 1];
         seam.add(last);
@@ -64,7 +65,27 @@ public class Stitcher {
      * the mask contains a seam from the upper left corner to the bottom right corner.
      */
     public void floodfill(int[][] mask) {
-
+        PriorityQueue<Position> positionPriorityQueue = new PriorityQueue<Position>();
+        Position position = positions[0][positions[0].length - 1];
+        positionPriorityQueue.add(position);
+        while (!positionPriorityQueue.isEmpty()) {
+            position = positionPriorityQueue.poll();
+            if (mask[position.getX()][position.getY()] == IMAGE1) {
+                mask[position.getX()][position.getY()] = IMAGE2;
+                if (position.getX() > 0) {
+                    positionPriorityQueue.add(positions[position.getX() - 1][position.getY()]);
+                }
+                if (position.getY() > 0) {
+                    positionPriorityQueue.add(positions[position.getX()][position.getY() - 1]);
+                }
+                if (position.getX() < positions.length - 1) {
+                    positionPriorityQueue.add(positions[position.getX() + 1][position.getY()]);
+                }
+                if (position.getY() < positions[0].length - 1 ) {
+                    positionPriorityQueue.add(positions[position.getX()][position.getY() + 1]);
+                }
+            }
+        }
     }
 
     /**
@@ -81,11 +102,16 @@ public class Stitcher {
      * equal dimensions.
      */
     public int[][] stitch(int[][] image1, int[][] image2) {
-        // use seam and floodfill to implement this method
-        throw new RuntimeException("not implemented yet");
+        Iterable<Position> seam = seam(image1, image2);
+        int[][] image = new int[image1.length][image1[0].length];
+        for (Position position : seam) {
+            image[position.getX()][position.getY()] = SEAM;
+        }
+        floodfill(image);
+        return image;
     }
 
-    private void relax(Position position, Position[][] positions) {
+    private void relax(Position position) {
         boolean hasLeft = position.getX() > 0;
         boolean hasTop = position.getY() > 0;
         boolean hasRight = position.getX() < positions.length - 1;
